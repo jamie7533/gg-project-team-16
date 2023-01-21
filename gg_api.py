@@ -1,12 +1,15 @@
 '''Version 0.35'''
+
+OFFICIAL_AWARDS_1315 = ['cecil b. demille award', 'best motion picture - drama', 'best performance by an actress in a motion picture - drama', 'best performance by an actor in a motion picture - drama', 'best motion picture - comedy or musical', 'best performance by an actress in a motion picture - comedy or musical', 'best performance by an actor in a motion picture - comedy or musical', 'best animated feature film', 'best foreign language film', 'best performance by an actress in a supporting role in a motion picture', 'best performance by an actor in a supporting role in a motion picture', 'best director - motion picture', 'best screenplay - motion picture', 'best original score - motion picture', 'best original song - motion picture', 'best television series - drama', 'best performance by an actress in a television series - drama', 'best performance by an actor in a television series - drama', 'best television series - comedy or musical', 'best performance by an actress in a television series - comedy or musical', 'best performance by an actor in a television series - comedy or musical', 'best mini-series or motion picture made for television', 'best performance by an actress in a mini-series or motion picture made for television', 'best performance by an actor in a mini-series or motion picture made for television', 'best performance by an actress in a supporting role in a series, mini-series or motion picture made for television', 'best performance by an actor in a supporting role in a series, mini-series or motion picture made for television']
+OFFICIAL_AWARDS_1819 = ['best motion picture - drama', 'best motion picture - musical or comedy', 'best performance by an actress in a motion picture - drama', 'best performance by an actor in a motion picture - drama', 'best performance by an actress in a motion picture - musical or comedy', 'best performance by an actor in a motion picture - musical or comedy', 'best performance by an actress in a supporting role in any motion picture', 'best performance by an actor in a supporting role in any motion picture', 'best director - motion picture', 'best screenplay - motion picture', 'best motion picture - animated', 'best motion picture - foreign language', 'best original score - motion picture', 'best original song - motion picture', 'best television series - drama', 'best television series - musical or comedy', 'best television limited series or motion picture made for television', 'best performance by an actress in a limited series or a motion picture made for television', 'best performance by an actor in a limited series or a motion picture made for television', 'best performance by an actress in a television series - drama', 'best performance by an actor in a television series - drama', 'best performance by an actress in a television series - musical or comedy', 'best performance by an actor in a television series - musical or comedy', 'best performance by an actress in a supporting role in a series, limited series or motion picture made for television', 'best performance by an actor in a supporting role in a series, limited series or motion picture made for television', 'cecil b. demille award']
+
 import json
 import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
-OFFICIAL_AWARDS_1315 = ['cecil b. demille award', 'best motion picture - drama', 'best performance by an actress in a motion picture - drama', 'best performance by an actor in a motion picture - drama', 'best motion picture - comedy or musical', 'best performance by an actress in a motion picture - comedy or musical', 'best performance by an actor in a motion picture - comedy or musical', 'best animated feature film', 'best foreign language film', 'best performance by an actress in a supporting role in a motion picture', 'best performance by an actor in a supporting role in a motion picture', 'best director - motion picture', 'best screenplay - motion picture', 'best original score - motion picture', 'best original song - motion picture', 'best television series - drama', 'best performance by an actress in a television series - drama', 'best performance by an actor in a television series - drama', 'best television series - comedy or musical', 'best performance by an actress in a television series - comedy or musical', 'best performance by an actor in a television series - comedy or musical', 'best mini-series or motion picture made for television', 'best performance by an actress in a mini-series or motion picture made for television', 'best performance by an actor in a mini-series or motion picture made for television', 'best performance by an actress in a supporting role in a series, mini-series or motion picture made for television', 'best performance by an actor in a supporting role in a series, mini-series or motion picture made for television']
-OFFICIAL_AWARDS_1819 = ['best motion picture - drama', 'best motion picture - musical or comedy', 'best performance by an actress in a motion picture - drama', 'best performance by an actor in a motion picture - drama', 'best performance by an actress in a motion picture - musical or comedy', 'best performance by an actor in a motion picture - musical or comedy', 'best performance by an actress in a supporting role in any motion picture', 'best performance by an actor in a supporting role in any motion picture', 'best director - motion picture', 'best screenplay - motion picture', 'best motion picture - animated', 'best motion picture - foreign language', 'best original score - motion picture', 'best original song - motion picture', 'best television series - drama', 'best television series - musical or comedy', 'best television limited series or motion picture made for television', 'best performance by an actress in a limited series or a motion picture made for television', 'best performance by an actor in a limited series or a motion picture made for television', 'best performance by an actress in a television series - drama', 'best performance by an actor in a television series - drama', 'best performance by an actress in a television series - musical or comedy', 'best performance by an actor in a television series - musical or comedy', 'best performance by an actress in a supporting role in a series, limited series or motion picture made for television', 'best performance by an actor in a supporting role in a series, limited series or motion picture made for television', 'cecil b. demille award']
+
 
 
 
@@ -45,6 +48,9 @@ def clean_tweets():
     print(tweets_text[1:5])
     return tweets_text
 
+
+
+
 def find_wins(s):
     match = re.search(r"(\b\w+\s+\w+\b)\s+wins\s+(\b\w+\s+\w+\b)", s)
     if match:
@@ -52,13 +58,77 @@ def find_wins(s):
     else:
         return None
 
+def match_hosts(str):
+    match = re.search(r"host",str)
+    if match:
+        return str
+    else:
+        return None
+
+def get_list_of_names():
+    name_counts = {}
+    file = open('names.txt', mode = 'r', encoding = 'utf-8-sig')
+    lines = file.readlines()
+    file.close()
+    names = []
+    for line in lines:
+        line = line[:-1].lower()
+        names.append(line)
+        name_counts[line] = 0
+        
+    return names, name_counts
+
+def top_n_keys(d, n):
+    # sort the items by values
+    items = sorted(d.items(), key=lambda x: x[1], reverse=True)
+    # take the first n items
+    top_n = items[:n]
+    # extract the keys from the items
+    top_n_keys = [item[0] for item in top_n]
+    return top_n_keys
+
+
+
+
 
 def get_hosts(year):
-    '''Hosts is a list of one or more strings. Do NOT change the name
-    of this function or what it returns.'''
-    # Your code here
+    names,name_counts = get_list_of_names()
+    
+    f = open('gg2013.json')
+    data = json.load(f)
+    hosts = []
+    for tweet in data:
+        match = match_hosts(tweet['text'])
+        if(match != None):
+            words = tweet['text'].split(' ')
+            for word in words:
+                if(word.lower() in names):
+                    name_counts[word.lower()] += 1
+    possible_hosts = top_n_keys(name_counts,10)
+
+    #Now trying to determine how many hosts there actually were
+    previous_count = 0
+    for i in possible_hosts:
+        temp = name_counts[i]
+        if(temp < (0.9 * previous_count)):
+            return hosts
+        else:
+            hosts.append(i)
+        previous_count = temp
+    
     return hosts
 
+                    
+
+
+
+        
+        
+
+    #'''Hosts is a list of one or more strings. Do NOT change the name
+    #of this function or what it returns.'''
+    
+    
 def get_awards(year):
     '''Awards is a list of strings. Do NOT change the name
     of this function or what it returns.'''
@@ -87,12 +157,17 @@ def get_presenters(year):
     return presenters
 
 def pre_ceremony():
-    '''This function loads/fetches/processes any data your program
-    will use, and stores that data in your DB or in a json, csv, or
-    plain text file. It is the first thing the TA will run when grading.
-    Do NOT change the name of this function or what it returns.'''
+    
+    
+
+       
+
+    #'''This function loads/fetches/processes any data your program
+    #will use, and stores that data in your DB or in a json, csv, or
+    #plain text file. It is the first thing the TA will run when grading.
+    #Do NOT change the name of this function or what it returns.'''
     # Your code here
-    print("Pre-ceremony processing complete.")
+    #print("Pre-ceremony processing complete.")
     return
 
 def main():
@@ -101,12 +176,14 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    # Your code here
-    tweets_text = clean_tweets()
-    for i in tweets_text:
-        wins = find_wins(i)
-        if (wins != None):
-            print(wins)
+    tweets = clean_tweets()
+    
+    print(get_hosts(2013))
+    
+    
+            
+
+
     return
 
 if __name__ == '__main__':
