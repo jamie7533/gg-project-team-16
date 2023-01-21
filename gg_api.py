@@ -5,6 +5,51 @@ OFFICIAL_AWARDS_1819 = ['best motion picture - drama', 'best motion picture - mu
 
 import json
 import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+
+
+
+
+
+def clean_tweets():
+    #currently removes rt @..:, sets all to lower, removes tweets containing bad words that may be misleading
+    #removes leading and trailing spaces, removes stopwords including added list, removes all characters not in normal english including '(contractions mess up with stop words needs fix)
+
+    with open("gg2013.json", 'r') as f:
+        tweets = json.load(f)
+    bad_words = ["didn't", 'wish', 'hope', 'not', "should've", 'hoping']
+    tweets_text = [tweet['text'] for tweet in tweets]
+    tweets_text = [tweet.lower() for tweet in tweets_text]
+    #uncomment to only look at tweets containing wins, runs much quicker
+    #tweets_text = [tweet for tweet in tweets_text if any(bad in tweet for bad in [' wins '])]
+    tweets_text = [tweet for tweet in tweets_text if not any(bad in tweet for bad in bad_words)]
+    for i in range(len(tweets_text)):
+        if tweets_text[i].startswith("rt @") and ':' in tweets_text[i]:
+            tweets_text[i] = tweets_text[i].split(':', 1)[1]
+    tweets_text = [tweet.strip() for tweet in tweets_text]
+
+    my_stopwords = nltk.corpus.stopwords.words('english')
+    my_extra = ['gg', 'goldenglobes', 'golden', 'globes', 'globe']
+    my_stopwords.extend(my_extra)
+
+    print(my_stopwords)
+
+    for i in range(len(tweets_text)):
+        clean_i = re.sub("[^a-z0-9., ]", "", tweets_text[i])
+        filtered_words =[]
+        token_i = word_tokenize(clean_i)
+        for word in token_i:
+            if word not in my_stopwords:
+                filtered_words.append(word)
+        tweets_text[i] = " ".join(filtered_words)
+
+    print(tweets_text[1:5])
+    return tweets_text
+
+
+
 
 def find_wins(s):
     match = re.search(r"(\b\w+\s+\w+\b)\s+wins\s+(\b\w+\s+\w+\b)", s)
@@ -13,12 +58,77 @@ def find_wins(s):
     else:
         return None
 
+def match_hosts(str):
+    match = re.search(r"host",str)
+    if match:
+        return str
+    else:
+        return None
+
+def get_list_of_names():
+    name_counts = {}
+    file = open('names.txt', mode = 'r', encoding = 'utf-8-sig')
+    lines = file.readlines()
+    file.close()
+    names = []
+    for line in lines:
+        line = line[:-1].lower()
+        names.append(line)
+        name_counts[line] = 0
+        
+    return names, name_counts
+
+def top_n_keys(d, n):
+    # sort the items by values
+    items = sorted(d.items(), key=lambda x: x[1], reverse=True)
+    # take the first n items
+    top_n = items[:n]
+    # extract the keys from the items
+    top_n_keys = [item[0] for item in top_n]
+    return top_n_keys
+
+
+
+
+
 def get_hosts(year):
-    '''Hosts is a list of one or more strings. Do NOT change the name
-    of this function or what it returns.'''
-    # Your code here
+    names,name_counts = get_list_of_names()
+    
+    f = open('gg2013.json')
+    data = json.load(f)
+    hosts = []
+    for tweet in data:
+        match = match_hosts(tweet['text'])
+        if(match != None):
+            words = tweet['text'].split(' ')
+            for word in words:
+                if(word.lower() in names):
+                    name_counts[word.lower()] += 1
+    possible_hosts = top_n_keys(name_counts,10)
+
+    #Now trying to determine how many hosts there actually were
+    previous_count = 0
+    for i in possible_hosts:
+        temp = name_counts[i]
+        if(temp < (0.9 * previous_count)):
+            return hosts
+        else:
+            hosts.append(i)
+        previous_count = temp
+    
     return hosts
 
+                    
+
+
+
+        
+        
+
+    #'''Hosts is a list of one or more strings. Do NOT change the name
+    #of this function or what it returns.'''
+    
+    
 def get_awards(year):
     '''Awards is a list of strings. Do NOT change the name
     of this function or what it returns.'''
@@ -47,12 +157,17 @@ def get_presenters(year):
     return presenters
 
 def pre_ceremony():
-    '''This function loads/fetches/processes any data your program
-    will use, and stores that data in your DB or in a json, csv, or
-    plain text file. It is the first thing the TA will run when grading.
-    Do NOT change the name of this function or what it returns.'''
+    
+    
+
+       
+
+    #'''This function loads/fetches/processes any data your program
+    #will use, and stores that data in your DB or in a json, csv, or
+    #plain text file. It is the first thing the TA will run when grading.
+    #Do NOT change the name of this function or what it returns.'''
     # Your code here
-    print("Pre-ceremony processing complete.")
+    #print("Pre-ceremony processing complete.")
     return
 
 def main():
@@ -61,12 +176,10 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    f = open('gg2013.json')
-    data = json.load(f)
-    for i in data:
-        wins = find_wins(i['text'])
-        if(wins != None):
-            print(wins)
+    tweets = clean_tweets()
+    
+    print(get_hosts(2013))
+    
     
             
 
