@@ -7,6 +7,7 @@ import json
 import re
 import nltk
 from nltk.corpus import stopwords
+
 from nltk.tokenize import word_tokenize
 
 
@@ -34,7 +35,7 @@ def clean_tweets():
     my_extra = ['gg', 'goldenglobes', 'golden', 'globes', 'globe']
     my_stopwords.extend(my_extra)
 
-    print(my_stopwords)
+    #print(my_stopwords)
 
     for i in range(len(tweets_text)):
         clean_i = re.sub("[^a-z0-9., ]", "", tweets_text[i])
@@ -45,7 +46,7 @@ def clean_tweets():
                 filtered_words.append(word)
         tweets_text[i] = " ".join(filtered_words)
 
-    print(tweets_text[1:5])
+    #print(tweets_text[1:5])
     return tweets_text
 
 
@@ -93,29 +94,44 @@ def top_n_keys(d, n):
     return top_n_keys
 
 
+def filter_hosts(strings):
+    pattern = r"next year"
+    filtered_strings = []
+    for string in strings:
+        match = re.search(pattern, string)
+        if not match:
+            filtered_strings.append(string)
+    return filtered_strings
 
 
 
 def get_hosts(year):
     names,name_counts = get_list_of_names()
+    tweets = clean_tweets()
+    tweets = filter_hosts(tweets)
     
-    f = open('gg2013.json')
-    data = json.load(f)
+    
+    
     hosts = []
-    for tweet in data:
-        match = match_hosts(tweet['text'])
+    for tweet in tweets:
+        match = match_hosts(tweet)
         if(match != None):
-            words = tweet['text'].split(' ')
-            for word in words:
-                if(word.lower() in names):
-                    name_counts[word.lower()] += 1
-    possible_hosts = top_n_keys(name_counts,10)
+            words = tweet.split(' ')
+            for i in range(len(words) - 1):
+                if(words[i].lower() in names):
+                    name = words[i].lower() + ' ' + words[i+1].lower()
+                    if(name not in name_counts):
+                        name_counts[name] = 0
+                    else:
+                        name_counts[name] += 1
+    possible_hosts = top_n_keys(name_counts,5)
+    print(possible_hosts)
 
     #Now trying to determine how many hosts there actually were
     previous_count = 0
     for i in possible_hosts:
         temp = name_counts[i]
-        if(temp < (0.9 * previous_count)):
+        if(temp < (0.75 * previous_count)):
             return hosts
         else:
             hosts.append(i)
@@ -189,7 +205,7 @@ def main():
     run when grading. Do NOT change the name of this function or
     what it returns.'''
 
-    tweets = clean_tweets()
+    #tweets = clean_tweets()
     
     print(get_hosts(2013))
     #print(get_awards(2013))
