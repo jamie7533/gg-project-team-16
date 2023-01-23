@@ -60,7 +60,7 @@ def find_wins(s):
 
 def find_award(s):
     match = re.search(r"award for (.*?) goes to", s)
-    if not match: match = re.search(r"Best (.*)(award|Award)", s)
+    if not match: match = re.search(r"(Best .*)(award|Award)", s)
     return match.group(1) if match else None
 
 def match_hosts(str):
