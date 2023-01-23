@@ -20,33 +20,25 @@ def clean_tweets():
 
     with open("gg2013.json", 'r') as f:
         tweets = json.load(f)
-    bad_words = ["didn't", 'wish', 'hope', 'not', "should've", 'hoping']
+    # Creating a set of bad words for faster lookup
+    bad_words = {"didn't", 'wish', 'hope', 'not', "should've", 'hoping'}
     tweets_text = [tweet['text'] for tweet in tweets]
     tweets_text = [tweet.lower() for tweet in tweets_text]
-    #uncomment to only look at tweets containing wins, runs much quicker
-    #tweets_text = [tweet for tweet in tweets_text if any(bad in tweet for bad in [' wins '])]
+    # Using list comprehension and `any` function to check for bad words
     tweets_text = [tweet for tweet in tweets_text if not any(bad in tweet for bad in bad_words)]
-    for i in range(len(tweets_text)):
-        if tweets_text[i].startswith("rt @") and ':' in tweets_text[i]:
-            tweets_text[i] = tweets_text[i].split(':', 1)[1]
+    # Using list comprehension and `str.startswith()` and `str.split()` method for faster string manipulation
+    tweets_text = [tweet.split(':', 1)[1] for tweet in tweets_text if tweet.startswith("rt @") and ':' in tweet]
     tweets_text = [tweet.strip() for tweet in tweets_text]
 
-    my_stopwords = nltk.corpus.stopwords.words('english')
-    my_extra = ['gg', 'goldenglobes', 'golden', 'globes', 'globe']
-    my_stopwords.extend(my_extra)
+    # Creating a set of stop words for faster lookup
+    my_stopwords = set(stopwords.words('english'))
+    my_extra = {'gg', 'goldenglobes', 'golden', 'globes', 'globe'}
+    my_stopwords.update(my_extra)
 
-    #print(my_stopwords)
-
-    for i in range(len(tweets_text)):
-        clean_i = re.sub("[^a-z0-9., ]", "", tweets_text[i])
-        filtered_words =[]
-        token_i = word_tokenize(clean_i)
-        for word in token_i:
-            if word not in my_stopwords:
-                filtered_words.append(word)
-        tweets_text[i] = " ".join(filtered_words)
-
-    #print(tweets_text[1:5])
+    # Using list comprehension and `re.sub()` function for faster string manipulation
+    tweets_text = [re.sub("[^a-z0-9., ]", "", tweet) for tweet in tweets_text]
+    # Using list comprehension and `word_tokenize()` function for faster tokenization
+    tweets_text = [" ".join(word for word in word_tokenize(tweet) if word not in my_stopwords) for tweet in tweets_text]
     return tweets_text
 
 
