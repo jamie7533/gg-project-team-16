@@ -138,6 +138,13 @@ def get_awards(year):
     '''Awards is a list of strings. Do NOT change the name
     of this function or what it returns.'''
     # Your code here
+    awards = []
+    f = open('gg{0}.json'.format(year))
+    data = json.load(f)
+    for i in data:
+        award = find_award(i['text'])
+        if(award != None):
+            awards.append(award)
     return awards
 
 def get_nominees(year):
@@ -181,20 +188,11 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    f = open('gg2013.json')
-    data = json.load(f)
-    for i in data:
-        award = find_award(i['text'])
-        if(award != None):
-            print(award)
 
     tweets = clean_tweets()
     
     print(get_hosts(2013))
-    
-    
-            
-
+    #print(get_awards(2013))
 
     return
 
