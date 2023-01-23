@@ -52,7 +52,8 @@ def find_wins(s):
         return None
 
 def find_award(s):
-    match = re.search(r"award for (.*?) goes to", s)
+    match = re.search(r"award for (Best .*?) goes to", s)
+    if not match: match = re.search(r"the (.*?) (award|Award) goes to", s)
     if not match: match = re.search(r"(Best .*)(award|Award)", s)
     return match.group(1) if match else None
 
@@ -199,8 +200,8 @@ def main():
 
     #tweets = clean_tweets()
     
-    print(get_hosts(2013))
-    #print(get_awards(2013))
+    #print(get_hosts(2013))
+    print(get_awards(2013))
 
     return
 
