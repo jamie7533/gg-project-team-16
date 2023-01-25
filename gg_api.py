@@ -170,11 +170,45 @@ def get_winner(year):
     # Your code here
     return winners
 
-def get_presenters(year):
-    '''Presenters is a dictionary with the hard coded award
-    names as keys, and each entry a list of strings. Do NOT change the
-    name of this function or what it returns.'''
-    # Your code here
+
+def match_presenter_award(str, award):
+    if "present" in str and award in str:
+        print("possible presenter")
+        print(str)
+        return str
+    else:
+        return None
+
+#https://github.com/noah-alvarado/cs-337-project-1/blob/master/reference.py has good idea for finding more refrences to awards
+def get_presenters(year, award, data):
+    names,name_counts = get_list_of_names()
+    tweets = clean_tweets()
+    
+    presenters = []
+    for tweet in tweets:
+        match = match_presenter_award(tweet, award)
+        if match:
+            words = tweet.split(' ')
+            for i in range(len(words) - 1):
+                if(words[i] in names):
+                    name = words[i].lower() + ' ' + words[i+1].lower()
+                    if(name not in name_counts):
+                        name_counts[name] = 0
+                    else:
+                        name_counts[name] += 1
+    possible_presenters = top_n_keys(name_counts,5)
+    print(possible_presenters)
+
+    #Now trying to determine how many hosts there actually were
+    previous_count = 0
+    for i in possible_presenters:
+        temp = name_counts[i]
+        if(temp < (0.75 * previous_count)):
+            return presenters
+        else:
+            presenters.append(i)
+        previous_count = temp
+    
     return presenters
 
 def pre_ceremony():
