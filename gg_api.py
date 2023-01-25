@@ -91,7 +91,8 @@ def find_wins(s):
         return None
 
 def find_award(s):
-    match = re.search(r"best (.*) by (.*) in", s)
+    match = re.search(r"^(gets|won|win) the (\b\w+\b){5,7} award$", s)
+    if not match: match = re.search(r"best (.*) by (.*) in", s)
     if not match: match = re.search(r"award for (Best .*?) goes to", s)
     if not match: match = re.search(r"the (.*?) (award|Award) goes to", s)
     if not match: match = re.search(r"(Best .*)(award|Award)", s)
