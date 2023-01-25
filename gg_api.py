@@ -154,7 +154,7 @@ def get_hosts(year):
     previous_count = 0
     for i in possible_hosts:
         temp = name_counts[i]
-        if(temp < (0.75 * previous_count)):
+        if(temp < (0.9 * previous_count)):
             return hosts
         else:
             hosts.append(i)
@@ -202,17 +202,29 @@ def get_winner(year):
 
 
 def match_presenter_award(str, award):
-    if "present" in str and award in str:
-        print("possible presenter")
-        print(str)
+    
+    if "present" in str:
+        phrases = AWARDS_1315_KEYWORDS[award]
+        found = False
+        for word in phrases[0]:
+            if word not in str:
+                return None
+        found = False
+        for word in phrases[1]:
+            if word in str:
+                found = True
+        if found == False:
+            return None
+        for word in phrases[2]:
+            if word in str:
+                return None
         return str
     else:
         return None
 
 #https://github.com/noah-alvarado/cs-337-project-1/blob/master/reference.py has good idea for finding more refrences to awards
-def get_presenters(year, award, data):
+def get_presenters(year, award, tweets):
     names,name_counts = get_list_of_names()
-    tweets = clean_tweets()
     
     presenters = []
     for tweet in tweets:
@@ -265,8 +277,14 @@ def main():
     #tweets = clean_tweets()
     
     #print(get_hosts(2013))
-    print(get_awards(2013))
-
+    #print(get_awards(2013))
+    with open("gg2013.json", 'r') as f:
+        tweets = json.load(f)
+    tweets = [tweet['text'] for tweet in tweets]
+    tweets = [tweet.lower() for tweet in tweets]
+    #tweets = clean_tweets()
+    for award in AWARDS_1315_KEYWORDS.keys():
+        print(get_presenters(2013,award, tweets))
     return
 
 if __name__ == '__main__':
