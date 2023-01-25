@@ -8,8 +8,8 @@ import json
 import re
 import nltk
 from nltk.corpus import stopwords
-
 from nltk.tokenize import word_tokenize
+from collections import Counter
 
 #should be good to use with cleaned tweets
 # format:
@@ -43,6 +43,15 @@ AWARDS_1315_KEYWORDS = {
     'best performance by an actor in a supporting role in a series, mini-series or motion picture made for television' : [['actor','supporting'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['film','feature']]}
 
 
+
+def aggregate_and_sort(strings):
+    # Use Counter to count the occurrences of each string
+    count = Counter(strings)
+    # Convert the Counter object to a list of tuples
+    tuples = list(count.items())
+    # Sort the list of tuples by the second element (the number of occurrences) in descending order
+    tuples.sort(key=lambda x: x[1], reverse=True)
+    return tuples
 
 def clean_tweets():
     #currently removes rt @..:, sets all to lower, removes tweets containing bad words that may be misleading
@@ -82,7 +91,8 @@ def find_wins(s):
         return None
 
 def find_award(s):
-    match = re.search(r"award for (Best .*?) goes to", s)
+    match = re.search(r"best (.*) by (.*) in", s)
+    if not match: match = re.search(r"award for (Best .*?) goes to", s)
     if not match: match = re.search(r"the (.*?) (award|Award) goes to", s)
     if not match: match = re.search(r"(Best .*)(award|Award)", s)
     return match.group(1) if match else None
@@ -184,7 +194,7 @@ def get_awards(year):
         award = find_award(i['text'])
         if(award != None):
             awards.append(award)
-    return awards
+    return aggregate_and_sort(awards)
 
 def get_nominees(year):
     '''Nominees is a dictionary with the hard coded award
@@ -277,15 +287,27 @@ def main():
     #tweets = clean_tweets()
     
     #print(get_hosts(2013))
-    #print(get_awards(2013))
-    with open("gg2013.json", 'r') as f:
-        tweets = json.load(f)
-    tweets = [tweet['text'] for tweet in tweets]
-    tweets = [tweet.lower() for tweet in tweets]
-    #tweets = clean_tweets()
-    for award in AWARDS_1315_KEYWORDS.keys():
-        print(get_presenters(2013,award, tweets))
-    return
+    for award in get_awards(2013): print(award)
+
+    # with open("gg2013.json", 'r') as f:
+    #     tweets = json.load(f)
+    # tweets = [tweet['text'] for tweet in tweets]
+    # tweets = [tweet.lower() for tweet in tweets]
+    # #tweets = clean_tweets()
+    # for award in AWARDS_1315_KEYWORDS.keys():
+    #     print(get_presenters(2013,award, tweets))
+
+
+    # names,name_counts = get_list_of_names()
+    # for i in tweets:
+    #     words = i.split(' ')
+    #     for word in words:
+    #         if(word in names):
+    #             name_counts[word] += 1
+    # for key, value in sorted(name_counts.items(), key=lambda item: item[1], reverse=True):
+    #     print(key, value)
+    
+
 
 if __name__ == '__main__':
     main()
