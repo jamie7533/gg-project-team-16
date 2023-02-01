@@ -331,8 +331,44 @@ def get_presenters(year, award, tweets):
 
 
 def pre_ceremony():
-    
-    
+    """
+    #following creates the 3 txt files from the credits csv file and tvshows csv file
+    tvFile = pandas.read_csv('imdb_tvshows.csv')
+    csvFile = pandas.read_csv('tmdb_5000_credits.csv')
+    movie_list = csvFile["title"].to_list() + tvFile["Title"].to_list()
+    casts = csvFile["cast"].to_list()
+    crews = csvFile['crew'].to_list()
+    actor_list = set()
+    director_list = set()
+    #print(casts[0][1])
+    for cast in casts:
+        for char in ast.literal_eval(cast):
+            actor_list.add(char["name"])
+    for actors in tvFile["Actors"].to_list():
+
+        if type(actors) == str:
+            actors = actors.split(',')
+            for actor in actors:
+                actor_list.add(actor.strip())
+    actor_list = list(actor_list)
+    for crew in crews:
+        for person in ast.literal_eval(crew):
+            if person["job"] == "Director":
+                director_list.add(person["name"])
+    director_list = list(director_list)
+
+    with open('movies_and_shows.txt', 'w') as f:
+        for movie in movie_list:
+            f.write(f"{movie}\n".encode('utf8').decode('ascii', 'ignore'))
+
+    with open('directors.txt', 'w') as f:
+        for director in director_list:
+            f.write(f"{director}\n".encode('utf8').decode('ascii', 'ignore'))
+
+    with open('actors.txt', 'w') as f:
+        for actor in actor_list:
+            f.write(f"{actor}\n".encode('utf8').decode('ascii', 'ignore'))
+    """
 
        
 
@@ -351,6 +387,10 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
+    
+
+
+
 
     #tweets = clean_tweets()
     
@@ -368,34 +408,7 @@ def main():
         #find_nominees(award, tweets)
     #     print(get_presenters(2013,award, tweets))
     
-    csvFile = pandas.read_csv('tmdb_5000_credits.csv')
-    movie_list = csvFile["title"].to_list()
-    casts = csvFile["cast"].to_list()
-    crews = csvFile['crew'].to_list()
-    actor_list = set()
-    director_list = set()
-    #print(casts[0][1])
-    for cast in casts:
-        for char in ast.literal_eval(cast):
-            actor_list.add(char["name"])
-    actor_list = list(actor_list)
-    for crew in crews:
-        for person in ast.literal_eval(crew):
-            if person["job"] == "Director":
-                director_list.add(person["name"])
-    director_list = list(director_list)
-
-    with open('movies.txt', 'w') as f:
-        for movie in movie_list:
-            f.write(f"{movie}\n".encode('utf8').decode('ascii', 'ignore'))
-
-    with open('directors.txt', 'w') as f:
-        for director in director_list:
-            f.write(f"{director}\n".encode('utf8').decode('ascii', 'ignore'))
-
-    with open('actors.txt', 'w') as f:
-        for actor in actor_list:
-            f.write(f"{actor}\n".encode('utf8').decode('ascii', 'ignore'))
+    
     #csvFile.iloc[0]["crew"]
     # names,name_counts = get_list_of_names()
     # for i in tweets:
