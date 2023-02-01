@@ -96,6 +96,14 @@ def get_list_of_names():
         
     return names, name_counts
 
+def read_list_file(file):
+    array = []
+    with open(file) as my_file:
+        for line in my_file:
+            array.append(line.strip().lower())
+    return array
+    
+
 
 #Returns tweet if award found in tweet, else returns None
 #Relies on the AWARDS_1315_KEYWORDS format
@@ -117,54 +125,52 @@ def award_in_tweet(tweet, award):
     
 #Takes a list of tweets and an award and finds the nominees for the award
 def find_nominees(award, tweets):
+    actors_list = read_list_file('actors.txt')
+    directors_list = read_list_file('directors.txt')
+    movie_show_list = read_list_file('movies_and_shows.txt')
     nominees = []
     tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
-    if 'actor' in award or 'actress' in award or 'director' in award:
-        names,name_counts = get_list_of_names()
+    if 'actor' in award or 'actress' in award:
+        potential_nominees = {}
+        for tweet in tweets:
+            for name in actors_list:
+                if len(name)<5:
+                    print(name)
+                if name in tweet:
+                    if(name not in potential_nominees):
+                        potential_nominees[name] = 1
+                    else:
+                        potential_nominees[name] += 1    
+        nominees = top_n_keys(potential_nominees,5)
+        print(nominees)
+    elif 'director' in award:
+        potential_nominees = {}
         for tweet in tweets:
             words = tweet.split(' ')
             for i in range(len(words) - 1):
-                if(words[i] in names):
-                    name = words[i] + ' ' + words[i+1]
-                    if(name not in name_counts):
-                        name_counts[name] = 1
+                if(words[i] in directors_list):
+                    name = words[i]# + ' ' + words[i+1]
+                    if(name not in potential_nominees):
+                        potential_nominees[name] = 1
                     else:
-                        name_counts[name] += 1    
-        nominees = top_n_keys(name_counts,5)
+                        potential_nominees[name] += 1    
+        nominees = top_n_keys(potential_nominees,5)
         print(nominees)
-        #find names
     else:
-        pass
-        #find movies
-
-    return nominees
-
-    hosts = []
-    for tweet in tweets:
-        match = match_hosts(tweet)
-        if(match != None):
+        potential_nominees = {}
+        for tweet in tweets:
             words = tweet.split(' ')
             for i in range(len(words) - 1):
-                if(words[i].lower() in names):
-                    name = words[i].lower() + ' ' + words[i+1].lower()
-                    if(name not in name_counts):
-                        name_counts[name] = 0
+                if(words[i] in movie_show_list):
+                    name = words[i]# + ' ' + words[i+1]
+                    if(name not in potential_nominees):
+                        potential_nominees[name] = 1
                     else:
-                        name_counts[name] += 1
-    possible_hosts = top_n_keys(name_counts,5)
-    print(possible_hosts)
+                        potential_nominees[name] += 1    
+        nominees = top_n_keys(potential_nominees,5)
+        print(nominees)
 
-    #Now trying to determine how many hosts there actually were
-    previous_count = 0
-    for i in possible_hosts:
-        temp = name_counts[i]
-        if(temp < (0.9 * previous_count)):
-            return hosts
-        else:
-            hosts.append(i)
-        previous_count = temp
-    
-    return hosts
+    return nominees
 
 def find_wins(s):
     match = re.search(r"(\b\w+\s+\w+\b)\s+wins\s+(\b\w+\s+\w+\b)", s)
@@ -398,16 +404,19 @@ def main():
     #for award in get_awards(2013): print(award)
     #names,name_counts = get_list_of_names()
     #print(names)
-    #with open("gg2013.json", 'r') as f:
-         #tweets = json.load(f)
-    #tweets = [tweet['text'] for tweet in tweets]
-    #tweets = [tweet.lower() for tweet in tweets]
+
+
+
+    with open("gg2013.json", 'r') as f:
+         tweets = json.load(f)
+    tweets = [tweet['text'] for tweet in tweets]
+    tweets = [tweet.lower() for tweet in tweets]
     # #tweets = clean_tweets()
-    #for award in AWARDS_1315_KEYWORDS.keys():
-        #print(award)
-        #find_nominees(award, tweets)
+    for award in AWARDS_1315_KEYWORDS.keys():
+        print(award)
+        find_nominees(award, tweets)
     #     print(get_presenters(2013,award, tweets))
-    
+
     
     #csvFile.iloc[0]["crew"]
     # names,name_counts = get_list_of_names()
