@@ -12,6 +12,10 @@ from nltk.tokenize import word_tokenize
 from collections import Counter
 import pandas
 import ast
+import gender_guesser.detector as gender
+d = gender.Detector()
+
+
 
 #should be good to use with cleaned tweets
 # format:
@@ -20,10 +24,10 @@ AWARDS_1315_KEYWORDS = {
     'cecil b. demille award' : [['award'],['cecil', 'demille'],[]],
     'best motion picture - drama' : [['drama'],['motion', 'picture', 'movie', 'film'],['actor', 'actress']], 
     'best performance by an actress in a motion picture - drama' : [['actress', 'drama'],['motion', 'picture', 'movie', 'film'], ['supporting']],
-    'best performance by an actor in a motion picture - drama' : [['actress', 'drama'],['motion', 'picture', 'movie', 'film'], ['supporting']], 
+    'best performance by an actor in a motion picture - drama' : [['actor', 'drama'],['motion', 'picture', 'movie', 'film'], ['supporting']], 
     'best motion picture - comedy or musical' : [['comedy', 'musical'],['motion', 'picture', 'movie', 'film'],['actor', 'actress']], 
-    'best performance by an actress in a motion picture - comedy or musical' : [['actress', 'comedy', 'musical'],['motion', 'picture', 'movie', 'film'], ['supporting']], 
-    'best performance by an actor in a motion picture - comedy or musical' : [['actor', 'comedy', 'musical'],['motion', 'picture', 'movie', 'film'], ['supporting']], 
+    'best performance by an actress in a motion picture - comedy or musical' : [['actress', 'comedy'],['motion', 'picture', 'movie', 'film'], ['supporting', 'television', 'tv']], 
+    'best performance by an actor in a motion picture - comedy or musical' : [['actor', 'comedy'],['motion', 'picture', 'movie', 'film'], ['supporting', 'television', 'tv']], 
     'best animated feature film' : [['animated'],['motion', 'picture', 'movie', 'film'],[]], 
     'best foreign language film' : [['foreign', 'language'],['motion', 'picture', 'movie', 'film'],[]], 
     'best performance by an actress in a supporting role in a motion picture' : [['actress', 'supporting'],['motion', 'picture', 'movie', 'film'],[]], 
@@ -35,7 +39,7 @@ AWARDS_1315_KEYWORDS = {
     'best television series - drama' : [['drama'],['television','tv','series'],['actor','actress']], 
     'best performance by an actress in a television series - drama' : [['drama','actress'],['television','tv','series'],['supporting']], 
     'best performance by an actor in a television series - drama' : [['drama','actor'],['television','tv','series'],['supporting']], 
-    'best television series - comedy or musical' : [['comedy','musical'],['television','tv','series'],['actor','actress']], 
+    'best television series - comedy or musical' : [['comedy'],['television','tv','series'],['actor','actress']], 
     'best performance by an actress in a television series - comedy or musical' : [['comedy','actress'],['television','tv','series'],['supporting']], 
     'best performance by an actor in a television series - comedy or musical' : [['comedy','actor'],['television','tv','series'],['supporting']], 
     'best mini-series or motion picture made for television' : [[],['mini','mini-series','limited','motion picture made television', 'movie made television'],['actor','actress','film','feature']], 
@@ -122,6 +126,16 @@ def award_in_tweet(tweet, award):
         if word in tweet:
             return None
     return tweet
+
+def find_gender(full_name):
+    first_name = full_name.split()[0].capitalize()
+    gender = d.get_gender(first_name)
+    if gender == 'male':
+        return 'male'
+    elif gender == 'female':
+        return 'female'
+    else:
+        return None
     
 #Takes a list of tweets and an award and finds the nominees for the award
 def find_nominees(award, tweets):
@@ -130,16 +144,24 @@ def find_nominees(award, tweets):
     movie_show_list = read_list_file('movies_and_shows.txt')
     nominees = []
     tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
+
+    if('actor' in award):
+        gen = 'male'
+    elif('actress' in award):
+        gen = 'female'
+    else:
+        gen = None
     
     if 'actor' in award or 'actress' in award or 'cecil' in award:
         potential_nominees = {}
         for tweet in tweets:
             for name in actors_list:
                 if name in tweet:
-                    if(name not in potential_nominees):
-                        potential_nominees[name] = 1
-                    else:
-                        potential_nominees[name] += 1    
+                    if(gen == None or find_gender(name) == gen):
+                        if(name not in potential_nominees):
+                            potential_nominees[name] = 1
+                        else:
+                            potential_nominees[name] += 1    
         nominees = top_n_keys(potential_nominees,7)
         print(nominees)
     elif 'director' in award:
@@ -174,9 +196,59 @@ def find_wins(s):
         return None
 
 
+def find_winner(award, tweets):
+    actors_list = read_list_file('actors.txt')
+    directors_list = read_list_file('directors.txt')
+    movie_show_list = read_list_file('movies_and_shows.txt')
+    nominees = []
+    tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
+    tweets = [tweet for tweet in tweets if 'win' in tweet]
+    if 'actor' in award or 'actress' in award or 'cecil' in award:
+        potential_nominees = {}
+        for tweet in tweets:
+            for name in actors_list:
+                if name in tweet:
+                    if(name not in potential_nominees):
+                        potential_nominees[name] = 1
+                    else:
+                        potential_nominees[name] += 1    
+        nominees = top_n_keys(potential_nominees,1)
+        print(nominees)
+    elif 'director' in award:
+        potential_nominees = {}
+        for tweet in tweets:
+            for name in directors_list:
+                if name in tweet:
+                    if(name not in potential_nominees):
+                        potential_nominees[name] = 1
+                    else:
+                        potential_nominees[name] += 1    
+        nominees = top_n_keys(potential_nominees,1)
+        print(nominees)
+    else:
+        potential_nominees = {}
+        for tweet in tweets:
+            for movie in movie_show_list:
+                if movie in tweet:
+                    if(movie not in potential_nominees):
+                        potential_nominees[movie] = 1
+                    else:
+                        potential_nominees[movie] += 1    
+        nominees = top_n_keys(potential_nominees,1)
+        print(nominees)
+    return nominees
+
+def find_wins(s):
+    match = re.search(r"(\b\w+\s+\w+\b)\s+wins\s+(\b\w+\s+\w+\b)", s)
+    if match:
+        return [match.group(1), match.group(2)]
+    else:
+        return None
+
 def find_award(s):
-    match = re.search(r"^(gets|won|win) the (\b\w+\b){5,7} award$", s)
-    if not match: match = re.search(r"best (.*) by (.*) in", s)
+    match = re.search(r"(gets|won|win) the (\b\w+\b){5,7} award", s)
+    #if not match: match = re.search(r"best (.*) by (.*) in", s)
+    if "win the Cecil B DeMille award" in s: print("CECIL IS HERE", s)
     if not match: match = re.search(r"award for (Best .*?) goes to", s)
     if not match: match = re.search(r"the (.*?) (award|Award) goes to", s)
     if not match: match = re.search(r"(Best .*)(award|Award)", s)
@@ -299,7 +371,33 @@ def match_presenter_award(str, award):
 
 
 #https://github.com/noah-alvarado/cs-337-project-1/blob/master/reference.py has good idea for finding more refrences to awards
-def get_presenters(year, award, tweets):
+def get_presenters(award, tweets):
+    actors_list = read_list_file('actors.txt')
+    tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
+    tweets = [tweet for tweet in tweets if 'present' in tweet]
+    potential_nominees = {}
+    for tweet in tweets:
+        for name in actors_list:
+            if name in tweet:
+                if(name not in potential_nominees):
+                    potential_nominees[name] = 1
+                else:
+                    potential_nominees[name] += 1    
+    possible_presenters = top_n_keys(potential_nominees,5)
+    previous_count = 0
+    presenters = []
+    for i in possible_presenters:
+        temp = potential_nominees[i]
+        if(temp < (0.75 * previous_count)):
+            return presenters
+        else:
+            presenters.append(i)
+        previous_count = temp
+    print(presenters)
+    return presenters
+    
+        
+"""
     names,name_counts = get_list_of_names()
     
     presenters = []
@@ -328,7 +426,7 @@ def get_presenters(year, award, tweets):
         previous_count = temp
     
     return presenters
-
+"""
 
 def pre_ceremony():
     """
@@ -408,7 +506,11 @@ def main():
     # #tweets = clean_tweets()
     for award in AWARDS_1315_KEYWORDS.keys():
         print(award)
-        find_nominees(award, tweets)
+        print('presenters:')
+        get_presenters(award, tweets)
+        print('nominees')
+        #find_nominees(award, tweets)
+        
     #     print(get_presenters(2013,award, tweets))
 
     # names,name_counts = get_list_of_names()
