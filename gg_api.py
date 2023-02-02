@@ -130,6 +130,7 @@ def find_nominees(award, tweets):
     movie_show_list = read_list_file('movies_and_shows.txt')
     nominees = []
     tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
+    
     if 'actor' in award or 'actress' in award or 'cecil' in award:
         potential_nominees = {}
         for tweet in tweets:
@@ -139,7 +140,7 @@ def find_nominees(award, tweets):
                         potential_nominees[name] = 1
                     else:
                         potential_nominees[name] += 1    
-        nominees = top_n_keys(potential_nominees,5)
+        nominees = top_n_keys(potential_nominees,7)
         print(nominees)
     elif 'director' in award:
         potential_nominees = {}
@@ -150,22 +151,19 @@ def find_nominees(award, tweets):
                         potential_nominees[name] = 1
                     else:
                         potential_nominees[name] += 1    
-        nominees = top_n_keys(potential_nominees,5)
-        print(potential_nominees)
+        nominees = top_n_keys(potential_nominees,7)
+        print(nominees)
     else:
         potential_nominees = {}
         for tweet in tweets:
-            words = tweet.split(' ')
-            for i in range(len(words) - 1):
-                if(words[i] in movie_show_list):
-                    name = words[i]# + ' ' + words[i+1]
-                    if(name not in potential_nominees):
-                        potential_nominees[name] = 1
+            for movie in movie_show_list:
+                if movie in tweet:
+                    if(movie not in potential_nominees):
+                        potential_nominees[movie] = 1
                     else:
-                        potential_nominees[name] += 1    
-        nominees = top_n_keys(potential_nominees,5)
-        print(potential_nominees)
-
+                        potential_nominees[movie] += 1    
+        nominees = top_n_keys(potential_nominees,7)
+        print(nominees)
     return nominees
 
 def find_wins(s):
@@ -400,7 +398,7 @@ def main():
     #for award in get_awards(2013): print(award)
     #names,name_counts = get_list_of_names()
     #print(names)
-
+    
     
 
     with open("gg2013.json", 'r') as f:
