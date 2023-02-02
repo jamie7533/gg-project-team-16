@@ -506,10 +506,10 @@ def main():
     # #tweets = clean_tweets()
     for award in AWARDS_1315_KEYWORDS.keys():
         print(award)
-        print('presenters:')
-        get_presenters(award, tweets)
-        print('nominees')
-        #find_nominees(award, tweets)
+        # print('presenters:')
+        # get_presenters(award, tweets)
+        # print('nominees')
+        find_nominees(award, tweets)
         
     #     print(get_presenters(2013,award, tweets))
 
