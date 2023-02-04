@@ -246,9 +246,8 @@ def find_wins(s):
         return None
 
 def find_award(s):
-    match = re.search(r"(gets|won|win) the (\b\w+\b){5,7} award", s)
-    #if not match: match = re.search(r"best (.*) by (.*) in", s)
-    if "win the Cecil B DeMille award" in s: print("CECIL IS HERE", s)
+    match = re.search(r"(gets|won|win) the (.\w+(?:\s+\w+){2,5} award)", s)
+    if match: return match.group(2)
     if not match: match = re.search(r"award for (Best .*?) goes to", s)
     if not match: match = re.search(r"the (.*?) (award|Award) goes to", s)
     if not match: match = re.search(r"(Best .*)(award|Award)", s)
@@ -493,7 +492,7 @@ def main():
     #tweets = clean_tweets()
     
     #print(get_hosts(2013))
-    #for award in get_awards(2013): print(award)
+    for award in get_awards(2013): print(award)
     #names,name_counts = get_list_of_names()
     #print(names)
     
@@ -503,13 +502,14 @@ def main():
          tweets = json.load(f)
     tweets = [tweet['text'] for tweet in tweets]
     tweets = [tweet.lower() for tweet in tweets]
+
     # #tweets = clean_tweets()
-    for award in AWARDS_1315_KEYWORDS.keys():
-        print(award)
-        # print('presenters:')
-        # get_presenters(award, tweets)
-        # print('nominees')
-        find_nominees(award, tweets)
+    # for award in AWARDS_1315_KEYWORDS.keys():
+    #     print(award)
+    #     # print('presenters:')
+    #     # get_presenters(award, tweets)
+    #     # print('nominees')
+    #     find_nominees(award, tweets)
         
     #     print(get_presenters(2013,award, tweets))
 
