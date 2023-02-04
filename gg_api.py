@@ -48,7 +48,6 @@ AWARDS_1315_KEYWORDS = {
     'best performance by an actress in a supporting role in a series, mini-series or motion picture made for television' : [['actress','supporting'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['film','feature']], 
     'best performance by an actor in a supporting role in a series, mini-series or motion picture made for television' : [['actor','supporting'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['film','feature']]}
 
-
 def aggregate_and_sort(strings):
     # Use Counter to count the occurrences of each string
     count = Counter(strings)
@@ -59,11 +58,11 @@ def aggregate_and_sort(strings):
     return tuples
 
 
-def clean_tweets():
+def clean_tweets(year):
     #currently removes rt @..:, sets all to lower, removes tweets containing bad words that may be misleading
     #removes leading and trailing spaces, removes stopwords including added list, removes all characters not in normal english including '(contractions mess up with stop words needs fix)
 
-    with open("gg2013.json", 'r') as f:
+    with open("gg{0}.json".format(year), 'r') as f:
         tweets = json.load(f)
     # Creating a set of bad words for faster lookup
     bad_words = {"didn't", 'wish', 'hope', 'not', "should've", 'hoping'}
@@ -163,7 +162,7 @@ def find_nominees(award, tweets):
                         else:
                             potential_nominees[name] += 1    
         nominees = top_n_keys(potential_nominees,7)
-        print(nominees)
+        #print(nominees)
     elif 'director' in award:
         potential_nominees = {}
         for tweet in tweets:
@@ -174,7 +173,7 @@ def find_nominees(award, tweets):
                     else:
                         potential_nominees[name] += 1    
         nominees = top_n_keys(potential_nominees,7)
-        print(nominees)
+        #print(nominees)
     else:
         potential_nominees = {}
         for tweet in tweets:
@@ -185,7 +184,7 @@ def find_nominees(award, tweets):
                     else:
                         potential_nominees[movie] += 1    
         nominees = top_n_keys(potential_nominees,7)
-        print(nominees)
+        #print(nominees)
     return nominees
 
 def find_wins(s):
@@ -200,43 +199,43 @@ def find_winner(award, tweets):
     actors_list = read_list_file('actors.txt')
     directors_list = read_list_file('directors.txt')
     movie_show_list = read_list_file('movies_and_shows.txt')
-    nominees = []
+    winners = []
     tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
     tweets = [tweet for tweet in tweets if 'win' in tweet]
     if 'actor' in award or 'actress' in award or 'cecil' in award:
-        potential_nominees = {}
+        potential_winners = {}
         for tweet in tweets:
             for name in actors_list:
                 if name in tweet:
-                    if(name not in potential_nominees):
-                        potential_nominees[name] = 1
+                    if(name not in potential_winners):
+                        potential_winners[name] = 1
                     else:
-                        potential_nominees[name] += 1    
-        nominees = top_n_keys(potential_nominees,1)
-        print(nominees)
+                        potential_winners[name] += 1    
+        winners = top_n_keys(potential_winners,1)
+        #print(winners)
     elif 'director' in award:
-        potential_nominees = {}
+        potential_winners = {}
         for tweet in tweets:
             for name in directors_list:
                 if name in tweet:
-                    if(name not in potential_nominees):
-                        potential_nominees[name] = 1
+                    if(name not in potential_winners):
+                        potential_winners[name] = 1
                     else:
-                        potential_nominees[name] += 1    
-        nominees = top_n_keys(potential_nominees,1)
-        print(nominees)
+                        potential_winners[name] += 1    
+        winners = top_n_keys(potential_winners,1)
+        #print(winners)
     else:
-        potential_nominees = {}
+        potential_winners = {}
         for tweet in tweets:
             for movie in movie_show_list:
                 if movie in tweet:
-                    if(movie not in potential_nominees):
-                        potential_nominees[movie] = 1
+                    if(movie not in potential_winners):
+                        potential_winners[movie] = 1
                     else:
-                        potential_nominees[movie] += 1    
-        nominees = top_n_keys(potential_nominees,1)
-        print(nominees)
-    return nominees
+                        potential_winners[movie] += 1    
+        winners = top_n_keys(potential_winners,1)
+        #print(winners)
+    return winners
 
 def find_wins(s):
     match = re.search(r"(\b\w+\s+\w+\b)\s+wins\s+(\b\w+\s+\w+\b)", s)
@@ -284,10 +283,8 @@ def filter_hosts(strings):
 
 def get_hosts(year):
     names,name_counts = get_list_of_names()
-    tweets = clean_tweets()
+    tweets = cleaned_tweets[year]
     tweets = filter_hosts(tweets)
-    
-    
     
     hosts = []
     for tweet in tweets:
@@ -302,14 +299,14 @@ def get_hosts(year):
                     else:
                         name_counts[name] += 1
     possible_hosts = top_n_keys(name_counts,5)
-    print(possible_hosts)
+    #print(possible_hosts)
 
     #Now trying to determine how many hosts there actually were
     previous_count = 0
     for i in possible_hosts:
         temp = name_counts[i]
         if(temp < (0.9 * previous_count)):
-            return hosts
+            return hosts 
         else:
             hosts.append(i)
         previous_count = temp
@@ -333,14 +330,24 @@ def get_awards(year):
             award = award.split(" is ")[0]
             award = award.split(" at ")[0]
             awards.append(award)
-    return aggregate_and_sort(awards)
+
+    award_counts = aggregate_and_sort(awards) # listOfTuples: (award found, number of times it appeared in tweets)
+
+    return awards
 
 
 def get_nominees(year):
     '''Nominees is a dictionary with the hard coded award
     names as keys, and each entry a list of strings. Do NOT change
     the name of this function or what it returns.'''
-    # Your code here
+    nominees = {}
+
+    # if year == 2013
+    awards_list = AWARDS_1315_KEYWORDS  # still need to make one for the other year?
+
+    tweets = cleaned_tweets[year]
+    for award in awards_list.keys():
+        nominees[award] = find_nominees(award, tweets)
     return nominees
 
 
@@ -349,6 +356,14 @@ def get_winner(year):
     names as keys, and each entry containing a single string.
     Do NOT change the name of this function or what it returns.'''
     # Your code here
+    winners = {}
+
+    # if year == 2013
+    awards_list = AWARDS_1315_KEYWORDS  # still need to make one for the other year?
+
+    tweets = cleaned_tweets[year]
+    for award in awards_list.keys():
+        winners[award] = find_winner(award, tweets)
     return winners
 
 
@@ -375,7 +390,7 @@ def match_presenter_award(str, award):
 
 
 #https://github.com/noah-alvarado/cs-337-project-1/blob/master/reference.py has good idea for finding more refrences to awards
-def get_presenters(award, tweets):
+def find_presenters(award, tweets):
     actors_list = read_list_file('actors.txt')
     tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
     tweets = [tweet for tweet in tweets if 'present' in tweet]
@@ -397,7 +412,18 @@ def get_presenters(award, tweets):
         else:
             presenters.append(i)
         previous_count = temp
-    print(presenters)
+    #print(presenters)
+    return presenters
+
+def get_presenters(year):
+    presenters = {}
+
+    # if year == 2013
+    awards_list = AWARDS_1315_KEYWORDS  # still need to make one for the other year?
+
+    tweets = cleaned_tweets[year]
+    for award in awards_list.keys():
+        presenters[award] = find_presenters(award, tweets)
     return presenters
     
         
@@ -482,50 +508,27 @@ def pre_ceremony():
     #print("Pre-ceremony processing complete.")
     return
 
+def onLoad():
+    global cleaned_tweets
+    cleaned_tweets = {2013: clean_tweets(2013), 2015: clean_tweets(2015)}
 
+
+# https://github.com/rromo12/EECS-337-Golden-Globes-Team-9/blob/master/gg_api.py
+# reference the above repo for a nice main function that waits for input
 def main():
     '''This function calls your program. Typing "python gg_api.py"
     will run this function. Or, in the interpreter, import gg_api
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
+
+    onLoad()  # to clean tweets only once
     
-
-
-
-
-    #tweets = clean_tweets()
-    
+    #print(get_awards(2013))
     #print(get_hosts(2013))
-    for award in get_awards(2013): print(award)
-    #names,name_counts = get_list_of_names()
-    #print(names)
-    
-    
-
-    with open("gg2013.json", 'r') as f:
-         tweets = json.load(f)
-    tweets = [tweet['text'] for tweet in tweets]
-    tweets = [tweet.lower() for tweet in tweets]
-
-    # #tweets = clean_tweets()
-    # for award in AWARDS_1315_KEYWORDS.keys():
-    #     print(award)
-    #     # print('presenters:')
-    #     # get_presenters(award, tweets)
-    #     # print('nominees')
-    #     find_nominees(award, tweets)
-        
-    #     print(get_presenters(2013,award, tweets))
-
-    # names,name_counts = get_list_of_names()
-    # for i in tweets:
-    #     words = i.split(' ')
-    #     for word in words:
-    #         if(word in names):
-    #             name_counts[word] += 1
-    # for key, value in sorted(name_counts.items(), key=lambda item: item[1], reverse=True):
-    #     print(key, value)
+    #print(get_nominees(2013))
+    #print(get_winner(2013))
+    #print(get_presenters(2013))
 
 
 if __name__ == '__main__':
