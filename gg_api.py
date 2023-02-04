@@ -326,7 +326,12 @@ def get_awards(year):
     data = json.load(f)
     for i in data:
         award = find_award(i['text'])
-        if(award != None):
+        acceptable = award and len(award.split()) > 1 and ("Best" in award or "award" in award) 
+        if(acceptable):
+            award = award.split(" for ")[0]  # remove anything after 'for' (full award names with 'for' rarely tweeted)
+            award = award.split(" goes to ")[0]  # remove anything after 'goes to'
+            award = award.split(" is ")[0]
+            award = award.split(" at ")[0]
             awards.append(award)
     return aggregate_and_sort(awards)
 
