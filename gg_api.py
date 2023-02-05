@@ -505,7 +505,7 @@ def talked_about(year):
     for person in people:
         top_words = {}
         in_tweets = [tweet for tweet in clean_tweets if person in tweet]
-        in_tweets = [re.sub("[^a-z0-9 ]", "", tweet) for tweet in in_tweets]
+        in_tweets = [re.sub("[^a-z ]", "", tweet) for tweet in in_tweets]
         
         in_tweets = [re.sub(person, "", tweet) for tweet in in_tweets]
         for tweet in in_tweets:
@@ -519,7 +519,7 @@ def talked_about(year):
     return ret_dict
 
 #doesn't run in reasonable time need to feed in short list of names (nominees + hosts + presenters)?
-#returns the most controversial person
+#returns the most controversial person by looking at sentiment analysis
 def most_controversial(year):
     sa = SentimentIntensityAnalyzer()
     person_list = involved_people[year]
@@ -540,7 +540,10 @@ def most_controversial(year):
     for person in people:
         ret_dict[person] = 0
         for tweet in people_tweet[person]:
+            #subtract some positive score, since without it the most controversial is heavily biased to most discussed
             ret_dict[person] += sa.polarity_scores(tweet)['neg']
+        for p in ret_dict.keys():
+            ret_dict[p] = ret_dict[p] / len(people_tweet[p])
     return top_n_keys(ret_dict, 1)
 
 
