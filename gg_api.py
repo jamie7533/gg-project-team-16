@@ -9,8 +9,8 @@ import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+from nltk.sentiment import SentimentIntensityAnalyzer
 from collections import Counter
-import pandas
 import ast
 import gender_guesser.detector as gender
 d = gender.Detector()
@@ -57,7 +57,7 @@ def aggregate_and_sort(strings):
     tuples.sort(key=lambda x: x[1], reverse=True)
     return tuples
 
-
+#very cleaned tweets, only use if looking for easy to find things
 def clean_tweets(year):
     #currently removes rt @..:, sets all to lower, removes tweets containing bad words that may be misleading
     #removes leading and trailing spaces, removes stopwords including added list, removes all characters not in normal english including '(contractions mess up with stop words needs fix)
@@ -71,7 +71,8 @@ def clean_tweets(year):
     # Using list comprehension and `any` function to check for bad words
     tweets_text = [tweet for tweet in tweets_text if not any(bad in tweet for bad in bad_words)]
     # Using list comprehension and `str.startswith()` and `str.split()` method for faster string manipulation
-    tweets_text = [tweet.split(':', 1)[1] for tweet in tweets_text if tweet.startswith("rt @") and ':' in tweet]
+    #tweets_text = [tweet.split(':', 1)[1] for tweet in tweets_text if not tweet.startswith("rt @") and ':' in tweet]
+    tweets_text = [tweet for tweet in tweets_text if not tweet.startswith("rt @") and ':' in tweet]
     tweets_text = [tweet.strip() for tweet in tweets_text]
 
     # Creating a set of stop words for faster lookup
@@ -83,6 +84,15 @@ def clean_tweets(year):
     tweets_text = [re.sub("[^a-z0-9., ]", "", tweet) for tweet in tweets_text]
     # Using list comprehension and `word_tokenize()` function for faster tokenization
     tweets_text = [" ".join(word for word in word_tokenize(tweet) if word not in my_stopwords) for tweet in tweets_text]
+    return tweets_text
+
+
+#only text and lowercase, better to use for cases where all info is needed (nominees)
+def tweets_lower(year):
+    with open("gg{0}.json".format(year), 'r') as f:
+        tweets = json.load(f)
+    tweets_text = [tweet['text'] for tweet in tweets]
+    tweets_text = [tweet.lower() for tweet in tweets_text]
     return tweets_text
 
 
@@ -99,6 +109,7 @@ def get_list_of_names():
         
     return names, name_counts
 
+
 def read_list_file(file):
     array = []
     with open(file) as my_file:
@@ -106,7 +117,6 @@ def read_list_file(file):
             array.append(line.strip().lower())
     return array
     
-
 
 #Returns tweet if award found in tweet, else returns None
 #Relies on the AWARDS_1315_KEYWORDS format
@@ -161,8 +171,7 @@ def find_nominees(award, tweets):
                             potential_nominees[name] = 1
                         else:
                             potential_nominees[name] += 1    
-        nominees = top_n_keys(potential_nominees,7)
-        #print(nominees)
+        nominees = top_n_keys(potential_nominees,5)
     elif 'director' in award:
         potential_nominees = {}
         for tweet in tweets:
@@ -172,8 +181,7 @@ def find_nominees(award, tweets):
                         potential_nominees[name] = 1
                     else:
                         potential_nominees[name] += 1    
-        nominees = top_n_keys(potential_nominees,7)
-        #print(nominees)
+        nominees = top_n_keys(potential_nominees,5)
     else:
         potential_nominees = {}
         for tweet in tweets:
@@ -183,9 +191,9 @@ def find_nominees(award, tweets):
                         potential_nominees[movie] = 1
                     else:
                         potential_nominees[movie] += 1    
-        nominees = top_n_keys(potential_nominees,7)
-        #print(nominees)
+        nominees = top_n_keys(potential_nominees,5)
     return nominees
+
 
 def find_wins(s):
     match = re.search(r"(\b\w+\s+\w+\b)\s+wins\s+(\b\w+\s+\w+\b)", s)
@@ -237,12 +245,14 @@ def find_winner(award, tweets):
         #print(winners)
     return winners
 
+
 def find_wins(s):
     match = re.search(r"(\b\w+\s+\w+\b)\s+wins\s+(\b\w+\s+\w+\b)", s)
     if match:
         return [match.group(1), match.group(2)]
     else:
         return None
+
 
 def find_award(s):
     match = re.search(r"(gets|won|win) the (.\w+(?:\s+\w+){2,5} award)", s)
@@ -279,6 +289,54 @@ def filter_hosts(strings):
         if not match:
             filtered_strings.append(string)
     return filtered_strings
+
+
+def match_presenter_award(str, award):
+    
+    if "present" in str:
+        phrases = AWARDS_1315_KEYWORDS[award]
+        found = False
+        for word in phrases[0]:
+            if word not in str:
+                return None
+        found = False
+        for word in phrases[1]:
+            if word in str:
+                found = True
+        if found == False:
+            return None
+        for word in phrases[2]:
+            if word in str:
+                return None
+        return str
+    else:
+        return None
+
+
+def find_presenters(award, tweets):
+    actors_list = read_list_file('actors.txt')
+    tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
+    tweets = [tweet for tweet in tweets if 'present' in tweet]
+    potential_nominees = {}
+    for tweet in tweets:
+        for name in actors_list:
+            if name in tweet:
+                if(name not in potential_nominees):
+                    potential_nominees[name] = 1
+                else:
+                    potential_nominees[name] += 1    
+    possible_presenters = top_n_keys(potential_nominees,5)
+    previous_count = 0
+    presenters = []
+    for i in possible_presenters:
+        temp = potential_nominees[i]
+        if(temp < (0.75 * previous_count)):
+            return presenters
+        else:
+            presenters.append(i)
+        previous_count = temp
+    #print(presenters)
+    return presenters
 
 
 def get_hosts(year):
@@ -345,7 +403,7 @@ def get_nominees(year):
     # if year == 2013
     awards_list = AWARDS_1315_KEYWORDS  # still need to make one for the other year?
 
-    tweets = cleaned_tweets[year]
+    tweets = low_tweets[year]
     for award in awards_list.keys():
         nominees[award] = find_nominees(award, tweets)
     return nominees
@@ -361,59 +419,11 @@ def get_winner(year):
     # if year == 2013
     awards_list = AWARDS_1315_KEYWORDS  # still need to make one for the other year?
 
-    tweets = cleaned_tweets[year]
+    tweets = low_tweets[year]
     for award in awards_list.keys():
         winners[award] = find_winner(award, tweets)
     return winners
 
-
-def match_presenter_award(str, award):
-    
-    if "present" in str:
-        phrases = AWARDS_1315_KEYWORDS[award]
-        found = False
-        for word in phrases[0]:
-            if word not in str:
-                return None
-        found = False
-        for word in phrases[1]:
-            if word in str:
-                found = True
-        if found == False:
-            return None
-        for word in phrases[2]:
-            if word in str:
-                return None
-        return str
-    else:
-        return None
-
-
-#https://github.com/noah-alvarado/cs-337-project-1/blob/master/reference.py has good idea for finding more refrences to awards
-def find_presenters(award, tweets):
-    actors_list = read_list_file('actors.txt')
-    tweets = [tweet for tweet in tweets if award_in_tweet(tweet, award)]
-    tweets = [tweet for tweet in tweets if 'present' in tweet]
-    potential_nominees = {}
-    for tweet in tweets:
-        for name in actors_list:
-            if name in tweet:
-                if(name not in potential_nominees):
-                    potential_nominees[name] = 1
-                else:
-                    potential_nominees[name] += 1    
-    possible_presenters = top_n_keys(potential_nominees,5)
-    previous_count = 0
-    presenters = []
-    for i in possible_presenters:
-        temp = potential_nominees[i]
-        if(temp < (0.75 * previous_count)):
-            return presenters
-        else:
-            presenters.append(i)
-        previous_count = temp
-    #print(presenters)
-    return presenters
 
 def get_presenters(year):
     presenters = {}
@@ -421,46 +431,123 @@ def get_presenters(year):
     # if year == 2013
     awards_list = AWARDS_1315_KEYWORDS  # still need to make one for the other year?
 
-    tweets = cleaned_tweets[year]
+    tweets = low_tweets[year]
     for award in awards_list.keys():
         presenters[award] = find_presenters(award, tweets)
     return presenters
-    
-        
-"""
-    names,name_counts = get_list_of_names()
-    
-    presenters = []
-    for tweet in tweets:
-        match = match_presenter_award(tweet, award)
-        if match:
-            words = tweet.split(' ')
-            for i in range(len(words) - 1):
-                if(words[i] in names):
-                    name = words[i].lower() + ' ' + words[i+1].lower()
-                    if(name not in name_counts):
-                        name_counts[name] = 0
-                    else:
-                        name_counts[name] += 1
-    possible_presenters = top_n_keys(name_counts,5)
-    print(possible_presenters)
 
-    #Now trying to determine how many hosts there actually were
-    previous_count = 0
-    for i in possible_presenters:
-        temp = name_counts[i]
-        if(temp < (0.75 * previous_count)):
-            return presenters
-        else:
-            presenters.append(i)
-        previous_count = temp
-    
-    return presenters
-"""
+
+
+
+#returns the best dressed person
+def best_dressed(year):
+    person_list = involved_people[year]
+    mentions = {}
+    tweets = cleaned_tweets[year]
+    tweets = [tweet for tweet in tweets if 'dress' in tweet]
+    filtered_tweets = []
+    praise = ["amazing", "beautiful", "wow", "love", "gorgeous", "perfect", "killing", "amazing", "spectacular", "banging", "best"]
+    for tweet in tweets:
+        for word in praise:
+            if word in tweet:
+                filtered_tweets.append(tweet)
+                break   
+    for tweet in filtered_tweets:
+        for name in person_list:
+            if name in tweet:
+                if(name not in mentions):
+                    mentions[name] = 1
+                else:
+                    mentions[name] += 1 
+    return top_n_keys(mentions,1)
+
+
+#returns the worst dressed person
+def worst_dressed(year):
+    person_list = involved_people[year]
+    mentions = {}
+    tweets = low_tweets[year]
+    tweets = [tweet for tweet in tweets if 'dress' in tweet]
+    filtered_tweets = []
+    bad = ["weird", "aint", "not", "bad", "ugly", "didn't", "couldn't", 'worst']
+    for tweet in tweets:
+        for word in bad:
+            if word in tweet:
+                filtered_tweets.append(tweet)
+                break   
+    for tweet in filtered_tweets:
+        for name in person_list:
+            if name in tweet:
+                if(name not in mentions):
+                    mentions[name] = 1
+                else:
+                    mentions[name] += 1 
+    return top_n_keys(mentions,1)
+
+
+#doesn't run in reasonable time need to feed in short list of names (nominees + hosts + presenters)?
+#returns the most talked about people, and the 5 most common words in tweets about them, ordered and filtered for stopwords
+def talked_about(year):
+    person_list = involved_people[year]
+    tweets = low_tweets[year]
+    clean_tweets = cleaned_tweets[year]
+    ret_dict = {}
+    mentions = {}
+    for tweet in tweets:
+        for name in person_list:
+            if name in tweet:
+                if(name not in mentions):
+                    mentions[name] = 1
+                else:
+                    mentions[name] += 1 
+    people = top_n_keys(mentions,3)
+    print(people)
+    for person in people:
+        top_words = {}
+        in_tweets = [tweet for tweet in clean_tweets if person in tweet]
+        in_tweets = [re.sub("[^a-z0-9 ]", "", tweet) for tweet in in_tweets]
+        
+        in_tweets = [re.sub(person, "", tweet) for tweet in in_tweets]
+        for tweet in in_tweets:
+            for word in tweet.split(" "):
+                if(len(word) > 3):
+                    if(word not in top_words):
+                        top_words[word] = 1
+                    else:
+                        top_words[word] += 1
+        ret_dict[person] = top_n_keys(top_words, 10)
+    return ret_dict
+
+#doesn't run in reasonable time need to feed in short list of names (nominees + hosts + presenters)?
+#returns the most controversial person
+def most_controversial(year):
+    sa = SentimentIntensityAnalyzer()
+    person_list = involved_people[year]
+    tweets = low_tweets[year]
+    ret_dict = {}
+    mentions = {}
+    people_tweet = {}
+    for tweet in tweets:
+        for name in person_list:
+            if name in tweet:
+                if(name not in mentions):
+                    people_tweet[name] = [tweet]
+                    mentions[name] = 1
+                else:
+                    people_tweet[name].append(tweet)
+                    mentions[name] += 1 
+    people = top_n_keys(mentions,20)
+    for person in people:
+        ret_dict[person] = 0
+        for tweet in people_tweet[person]:
+            ret_dict[person] += sa.polarity_scores(tweet)['neg']
+    return top_n_keys(ret_dict, 1)
+
 
 def pre_ceremony():
     """
-    #following creates the 3 txt files from the credits csv file and tvshows csv file
+    #following creates the base for the 3 txt files from the credits csv file and tvshows csv file. 
+    #They were cleaned further for short entries and to ensure winners were present
     tvFile = pandas.read_csv('imdb_tvshows.csv')
     csvFile = pandas.read_csv('tmdb_5000_credits.csv')
     movie_list = csvFile["title"].to_list() + tvFile["Title"].to_list()
@@ -508,9 +595,40 @@ def pre_ceremony():
     #print("Pre-ceremony processing complete.")
     return
 
+
 def onLoad():
-    global cleaned_tweets
+    global cleaned_tweets, low_tweets, involved_people
     cleaned_tweets = {2013: clean_tweets(2013), 2015: clean_tweets(2015)}
+    low_tweets = {2013: tweets_lower(2013), 2015: tweets_lower(2015)}
+    #create list to pass into best/worst dressed, talked about and controversial
+    #don't use for anything else
+    involved_people = {2013: set(), 2015: set()}
+    with open("gg2013answers.json", 'r') as f:
+        answers = json.load(f)
+    answers = answers["award_data"]
+    for award in answers.keys():
+        presenters = answers[award]["presenters"]
+        for i in presenters:
+            involved_people[2013].add(i)
+        if 'actor' in award or 'actress' in award or 'cecil' in award or 'director' in award:
+            nominees = answers[award]['nominees']
+            for i in nominees:
+                involved_people[2013].add(i)
+            involved_people[2013].add(answers[award]["winner"])
+    with open("gg2015answers.json", 'r') as f:
+        answers = json.load(f)
+    answers = answers["award_data"]
+    for award in answers.keys():
+        presenters = answers[award]["presenters"]
+        for i in presenters:
+            involved_people[2015].add(i)
+        if 'actor' in award or 'actress' in award or 'cecil' in award or 'director' in award:
+            nominees = answers[award]['nominees']
+            for i in nominees:
+                involved_people[2015].add(i)
+            involved_people[2015].add(answers[award]["winner"])
+            
+
 
 
 # https://github.com/rromo12/EECS-337-Golden-Globes-Team-9/blob/master/gg_api.py
@@ -522,8 +640,15 @@ def main():
     run when grading. Do NOT change the name of this function or
     what it returns.'''
 
-    onLoad()  # to clean tweets only once
-    
+    onLoad()  # to clean tweets only once\
+    print("best dressed")
+    print(best_dressed(2013))
+    print("worst dressed")
+    print(worst_dressed(2013))
+    print("most talked about")
+    print(talked_about(2013))
+    print("most controversial")
+    print(most_controversial(2013))
     #print(get_awards(2013))
     #print(get_hosts(2013))
     #print(get_nominees(2013))

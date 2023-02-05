@@ -150,6 +150,7 @@ the world is not enough
 master and commander: the far side of the world
 the twilight saga: breaking dawn - part 2
 happy feet two
+boyhood
 the incredible hulk
 the revenant
 penguins of madagascar
@@ -469,6 +470,7 @@ the man from u.n.c.l.e.
 spanglish
 monster house
 first knight
+birdman
 anna and the king
 immortals
 titan a.e.
@@ -1510,6 +1512,7 @@ we own the night
 lost souls
 winged migration
 just my luck
+pride
 mystery, alaska
 the spy next door
 a simple wish
@@ -2252,6 +2255,7 @@ book of shadows: blair witch 2
 the craft
 match point
 ramona and beezus
+the normal heart
 the remains of the day
 boogie nights
 nowhere to run
@@ -3149,6 +3153,7 @@ sunshine cleaning
 no escape
 the beastmaster
 solomon and sheba
+force majeure
 fifty shades of black
 not easily broken
 a farewell to arms
@@ -3291,6 +3296,7 @@ talk radio
 waiting for guffman
 love stinks
 you kill me
+gett: the trial of viviane amsalem
 thumbsucker
 red state
 mirrormask
@@ -3394,6 +3400,7 @@ coming home
 a nightmare on elm street part 2: freddy's revenge
 a room with a view
 the purge
+ida
 sinister
 martin lawrence live: runteldat
 cat on a hot tin roof
@@ -4700,6 +4707,7 @@ royal pains
 the a list
 catastrophe
 fresh meat
+olive kitteridge
 morden i sandhamn
 ghost adventures
 sorjonen
@@ -4717,6 +4725,7 @@ roman empire
 hannah montana
 ripper street
 i'm sorry.
+fargo
 body of proof
 the bridge
 last tango in halifax
@@ -4724,6 +4733,7 @@ critical role
 gentleman jack
 girl meets world
 lost girl
+tangerines
 shakespeare & hathaway: private investigators
 agatha raisin
 switched at birth
@@ -4989,6 +4999,7 @@ el vecino
 tell me you love me
 flashpoint
 luchshe, chem lyudi
+selma
 the catch
 bishjo senshi sr mn crystal
 living with yourself
@@ -6099,6 +6110,7 @@ small fortune
 washington heights
 fatmagl'n suu ne?
 midnight sun
+leviathan
 some assembly required
 a touch of cloth
 teachers
@@ -6269,6 +6281,7 @@ the michael j. fox show
 fancy nancy
 the goes wrong show
 criminal justice
+foxcatcher
 mr. bean: the animated series
 there's something about movies
 star wars: forces of destiny
@@ -6285,6 +6298,7 @@ hunting season
 diablero
 distrito salvaje
 flavor of love
+noah
 buzzfeed unsolved: true crime
 1-800-missing
 unusual suspects
@@ -6303,6 +6317,7 @@ la rosa de guadalupe
 return to amish
 fact or faked: paranormal files
 outsourced
+annie
 kuch rang pyar ke aise bhi
 bolvar: una lucha admirable
 bad teacher
