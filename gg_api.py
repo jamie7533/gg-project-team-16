@@ -97,7 +97,15 @@ def award_aggregation(awards):
     for key, value in awards_dict.items():
         if value > 1:
             clean_awards.add(key)
-    return list(clean_awards)
+    award_list = set()
+    for i in clean_awards:
+        award_words = i.split(" ")
+        if len(award_words[-1]) < 4:
+            award_words.pop()
+        if len(award_words) > 2:
+            award = " ".join(award_words)
+            award_list.add(award)
+    return list(award_list)
 
     # aggregate = defaultdict(int)
 
@@ -431,6 +439,7 @@ def get_awards(year):
     of this function or what it returns.'''
     # Your code here
     awards = []
+    names, count = get_list_of_names()
     f = open('gg{0}.json'.format(year))
     data = json.load(f)
     for i in data:
@@ -443,6 +452,7 @@ def get_awards(year):
             award = award.split(" is ")[0]
             award = award.split(" at ")[0]
             award = award.split(" and ")[0]
+            award = award.split(" to ")[0]
             award = award.split(":")[0]
             award = award.split(".")[0]
             award = award.split("|")[0]
@@ -450,10 +460,16 @@ def get_awards(year):
             award = award.split("...")[0]
             award = award.split("--")[0]
             award_words = award.split(" ")
+            for word in award_words:
+                if word in names:
+                    award = award.split(word)[0]
+                    break
+            award_words = award.split(" ")
             award = " ".join(word for word in award_words if "#" not in word and "@" not in word)
             award = re.sub("[^a-zA-Z-, ]", "", award)
             award = award.strip()
             award = award.split("golden globe")[0]
+            
             
             if len(award.split()) > 1: awards.append(award)
 
