@@ -11,9 +11,11 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.sentiment import SentimentIntensityAnalyzer
 from collections import Counter
+from collections import defaultdict
 import ast
 import gender_guesser.detector as gender
 d = gender.Detector()
+
 
 
 
@@ -55,7 +57,58 @@ def aggregate_and_sort(strings):
     tuples = list(count.items())
     # Sort the list of tuples by the second element (the number of occurrences) in descending order
     tuples.sort(key=lambda x: x[1], reverse=True)
+
     return tuples
+
+def aggregate_strings(tuples_list):
+    new_list = []
+    for string, count in tuples_list:
+        found = False
+        for new_string, new_count in new_list:
+            if string in new_string:
+                found = True
+                break
+        if not found:
+            new_list_item = (string, count)
+            for new_string, new_count in new_list:
+                if new_string in string:
+                    new_list_item = (string, count + new_count)
+                    new_list.remove((new_string, new_count))
+                    break
+            new_list.append(new_list_item)
+            new_list.sort(key=lambda x: x[1], reverse=True)
+    return new_list
+
+
+def award_aggregation(awards):
+    awards_dict = {}
+    clean_awards = set()
+    single = set()
+    for award in awards:
+        if award in awards_dict:
+            awards_dict[award] += 1
+        else:
+            awards_dict[award] = 1
+    for award in awards_dict.keys():
+        for other_award in awards_dict.keys():
+            if award != other_award and award in other_award:
+                awards_dict[award] = 0
+                awards_dict[other_award] += 1
+    for key, value in awards_dict.items():
+        if value > 1:
+            clean_awards.add(key)
+    return list(clean_awards)
+
+    # aggregate = defaultdict(int)
+
+    # for string in strings:
+    #     for i in range(len(string)):
+    #         for j in range(i + 1, min(i + 6, len(string) + 1)):
+    #             substring = string[i:j]
+    #             aggregate[substring] += 1
+
+    # aggregate_list = [(key, value) for key, value in aggregate.items() if len(key) > 1 and all(key not in other_key for other_key, other_value in aggregate.items() if other_key != key)]
+    # return aggregate_list
 
 #very cleaned tweets, only use if looking for easy to find things
 def clean_tweets(year):
@@ -362,8 +415,9 @@ def get_hosts(year):
     #Now trying to determine how many hosts there actually were
     previous_count = 0
     for i in possible_hosts:
+
         temp = name_counts[i]
-        if(temp < (0.9 * previous_count)):
+        if(temp < (0.55 * previous_count)):
             return hosts 
         else:
             hosts.append(i)
@@ -383,15 +437,32 @@ def get_awards(year):
         award = find_award(i['text'])
         acceptable = award and len(award.split()) > 1 and ("Best" in award or "award" in award) 
         if(acceptable):
+            award = award.lower()
             award = award.split(" for ")[0]  # remove anything after 'for' (full award names with 'for' rarely tweeted)
             award = award.split(" goes to ")[0]  # remove anything after 'goes to'
             award = award.split(" is ")[0]
             award = award.split(" at ")[0]
-            awards.append(award)
+            award = award.split(" and ")[0]
+            award = award.split(":")[0]
+            award = award.split(".")[0]
+            award = award.split("|")[0]
+            award = award.split("!")[0]
+            award = award.split("...")[0]
+            award = award.split("--")[0]
+            award_words = award.split(" ")
+            award = " ".join(word for word in award_words if "#" not in word and "@" not in word)
+            award = re.sub("[^a-zA-Z-, ]", "", award)
+            award = award.strip()
+            award = award.split("golden globe")[0]
+            
+            if len(award.split()) > 1: awards.append(award)
 
-    award_counts = aggregate_and_sort(awards) # listOfTuples: (award found, number of times it appeared in tweets)
+    #award_counts = aggregate_and_sort(awards) # listOfTuples: (award found, number of times it appeared in tweets)
+    award_counts = award_aggregation(awards)
+    #final_awards = [entry[0] for entry in award_counts]
+    return award_counts #final_awards
 
-    return awards
+
 
 
 def get_nominees(year):
@@ -501,7 +572,6 @@ def talked_about(year):
                 else:
                     mentions[name] += 1 
     people = top_n_keys(mentions,3)
-    print(people)
     for person in people:
         top_words = {}
         in_tweets = [tweet for tweet in clean_tweets if person in tweet]
@@ -540,7 +610,6 @@ def most_controversial(year):
     for person in people:
         ret_dict[person] = 0
         for tweet in people_tweet[person]:
-            #subtract some positive score, since without it the most controversial is heavily biased to most discussed
             ret_dict[person] += sa.polarity_scores(tweet)['neg']
         for p in ret_dict.keys():
             ret_dict[p] = ret_dict[p] / len(people_tweet[p])
@@ -600,63 +669,76 @@ def pre_ceremony():
 
 
 def onLoad():
-    global cleaned_tweets, low_tweets, involved_people
+    global cleaned_tweets, low_tweets
     cleaned_tweets = {2013: clean_tweets(2013), 2015: clean_tweets(2015)}
     low_tweets = {2013: tweets_lower(2013), 2015: tweets_lower(2015)}
-    #create list to pass into best/worst dressed, talked about and controversial
-    #don't use for anything else
-    involved_people = {2013: set(), 2015: set()}
-    with open("gg2013answers.json", 'r') as f:
-        answers = json.load(f)
-    answers = answers["award_data"]
-    for award in answers.keys():
-        presenters = answers[award]["presenters"]
-        for i in presenters:
-            involved_people[2013].add(i)
-        if 'actor' in award or 'actress' in award or 'cecil' in award or 'director' in award:
-            nominees = answers[award]['nominees']
-            for i in nominees:
-                involved_people[2013].add(i)
-            involved_people[2013].add(answers[award]["winner"])
-    with open("gg2015answers.json", 'r') as f:
-        answers = json.load(f)
-    answers = answers["award_data"]
-    for award in answers.keys():
-        presenters = answers[award]["presenters"]
-        for i in presenters:
-            involved_people[2015].add(i)
-        if 'actor' in award or 'actress' in award or 'cecil' in award or 'director' in award:
-            nominees = answers[award]['nominees']
-            for i in nominees:
-                involved_people[2015].add(i)
-            involved_people[2015].add(answers[award]["winner"])
-            
-
-
+    
 
 # https://github.com/rromo12/EECS-337-Golden-Globes-Team-9/blob/master/gg_api.py
 # reference the above repo for a nice main function that waits for input
 def main():
+    global involved_people
     '''This function calls your program. Typing "python gg_api.py"
     will run this function. Or, in the interpreter, import gg_api
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
 
-    onLoad()  # to clean tweets only once\
-    print("best dressed")
-    print(best_dressed(2013))
-    print("worst dressed")
-    print(worst_dressed(2013))
-    print("most talked about")
-    print(talked_about(2013))
-    print("most controversial")
-    print(most_controversial(2013))
-    #print(get_awards(2013))
-    #print(get_hosts(2013))
-    #print(get_nominees(2013))
-    #print(get_winner(2013))
-    #print(get_presenters(2013))
+    onLoad()  # to clean tweets only once
+    awards = get_awards(2013)
+    for award in awards:
+        print(award)
+        print()
+    #awards2 = aggregate_strings(awards)
+    #for award in awards2: print(award)
+    # hosts = get_hosts(2013)
+    # presenters = get_presenters(2013)
+    # nominees = get_nominees(2013)
+    # winners = get_winner(2013)
+    
+    # involved_people = {2013: set(), 2015: set()}
+    # for i in hosts:
+    #     involved_people[2013].add(i)
+    # for award in presenters.keys():
+    #     pr = presenters[award]
+    #     for i in pr:
+    #         involved_people[2013].add(i)
+    #     if 'actor' in award or 'actress' in award or 'cecil' in award or 'director' in award:
+    #         nom = nominees[award]
+    #         for i in nom:
+    #             involved_people[2013].add(i)
+    #         win = winners[award]
+    #         involved_people[2013].add(win[0])
+    # involved_people[2015] = involved_people[2013]
+    
+    # bDressed = best_dressed(2013)
+    # wDressed = worst_dressed(2013)
+    # talked = talked_about(2013)
+    # controversial = most_controversial(2013)
+    
+    # def human_readable(year):
+    #     print("Host(s): {0}\n\n".format(hosts))
+    #     print("List of mined awards: {0}\n\n".format(awards))
+    #     for award in OFFICIAL_AWARDS_1315:
+    #         print("Award: {0}".format(award))
+    #         print("Presenters: {0}".format(presenters[award]))
+    #         print("Nominees: {0}".format(nominees[award]))
+    #         print("Winner: {0}\n\n".format(winners[award]))
+        
+    #     print("Best Dressed: {0}\n".format(bDressed[0]))
+    #     print("Worst Dressed: {0}\n".format(wDressed[0]))
+    #     print("Most Talked About:\n")
+    #     for key, value in talked.items():
+    #         print("{0}, buzzwords: {1}\n".format(key, value))
+    #     print("Most Controversial: {0}".format(controversial[0]))
+
+
+    # def final_output(year):
+    #     pass
+
+
+    # human_readable(2013)
+
 
 
 if __name__ == '__main__':
