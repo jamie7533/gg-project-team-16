@@ -10,13 +10,8 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.sentiment import SentimentIntensityAnalyzer
-from collections import Counter
-from collections import defaultdict
-import ast
 import gender_guesser.detector as gender
 d = gender.Detector()
-
-
 
 
 #should be good to use with cleaned tweets
@@ -44,46 +39,15 @@ AWARDS_1315_KEYWORDS = {
     'best television series - comedy or musical' : [['comedy'],['television','tv','series'],['actor','actress']], 
     'best performance by an actress in a television series - comedy or musical' : [['comedy','actress'],['television','tv','series'],['supporting']], 
     'best performance by an actor in a television series - comedy or musical' : [['comedy','actor'],['television','tv','series'],['supporting']], 
-    'best mini-series or motion picture made for television' : [[],['mini','mini-series','limited','motion picture made television', 'movie made television'],['actor','actress','film','feature']], 
+    'best mini-series or motion picture made for television' : [['best'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['actor','actress','film','feature']], 
     'best performance by an actress in a mini-series or motion picture made for television' : [['actress'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['film','feature']], 
     'best performance by an actor in a mini-series or motion picture made for television' : [['actor'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['film','feature']], 
     'best performance by an actress in a supporting role in a series, mini-series or motion picture made for television' : [['actress','supporting'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['film','feature']], 
     'best performance by an actor in a supporting role in a series, mini-series or motion picture made for television' : [['actor','supporting'],['mini','mini-series','limited','motion picture made television', 'movie made television'],['film','feature']]}
 
-def aggregate_and_sort(strings):
-    # Use Counter to count the occurrences of each string
-    count = Counter(strings)
-    # Convert the Counter object to a list of tuples
-    tuples = list(count.items())
-    # Sort the list of tuples by the second element (the number of occurrences) in descending order
-    tuples.sort(key=lambda x: x[1], reverse=True)
-
-    return tuples
-
-def aggregate_strings(tuples_list):
-    new_list = []
-    for string, count in tuples_list:
-        found = False
-        for new_string, new_count in new_list:
-            if string in new_string:
-                found = True
-                break
-        if not found:
-            new_list_item = (string, count)
-            for new_string, new_count in new_list:
-                if new_string in string:
-                    new_list_item = (string, count + new_count)
-                    new_list.remove((new_string, new_count))
-                    break
-            new_list.append(new_list_item)
-            new_list.sort(key=lambda x: x[1], reverse=True)
-    return new_list
-
-
 def award_aggregation(awards):
     awards_dict = {}
     clean_awards = set()
-    single = set()
     for award in awards:
         if award in awards_dict:
             awards_dict[award] += 1
@@ -107,17 +71,6 @@ def award_aggregation(awards):
             award_list.add(award)
     return list(award_list)
 
-    # aggregate = defaultdict(int)
-
-    # for string in strings:
-    #     for i in range(len(string)):
-    #         for j in range(i + 1, min(i + 6, len(string) + 1)):
-    #             substring = string[i:j]
-    #             aggregate[substring] += 1
-
-    # aggregate_list = [(key, value) for key, value in aggregate.items() if len(key) > 1 and all(key not in other_key for other_key, other_value in aggregate.items() if other_key != key)]
-    # return aggregate_list
-
 #very cleaned tweets, only use if looking for easy to find things
 def clean_tweets(year):
     #currently removes rt @..:, sets all to lower, removes tweets containing bad words that may be misleading
@@ -125,25 +78,17 @@ def clean_tweets(year):
 
     with open("gg{0}.json".format(year), 'r') as f:
         tweets = json.load(f)
-    # Creating a set of bad words for faster lookup
     bad_words = {"didn't", 'wish', 'hope', 'not', "should've", 'hoping'}
     tweets_text = [tweet['text'] for tweet in tweets]
     tweets_text = [tweet.lower() for tweet in tweets_text]
-    # Using list comprehension and `any` function to check for bad words
     tweets_text = [tweet for tweet in tweets_text if not any(bad in tweet for bad in bad_words)]
-    # Using list comprehension and `str.startswith()` and `str.split()` method for faster string manipulation
-    #tweets_text = [tweet.split(':', 1)[1] for tweet in tweets_text if not tweet.startswith("rt @") and ':' in tweet]
     tweets_text = [tweet for tweet in tweets_text if not tweet.startswith("rt @") and ':' in tweet]
     tweets_text = [tweet.strip() for tweet in tweets_text]
 
-    # Creating a set of stop words for faster lookup
     my_stopwords = set(stopwords.words('english'))
     my_extra = {'gg', 'goldenglobes', 'golden', 'globes', 'globe'}
     my_stopwords.update(my_extra)
-
-    # Using list comprehension and `re.sub()` function for faster string manipulation
     tweets_text = [re.sub("[^a-z0-9., ]", "", tweet) for tweet in tweets_text]
-    # Using list comprehension and `word_tokenize()` function for faster tokenization
     tweets_text = [" ".join(word for word in word_tokenize(tweet) if word not in my_stopwords) for tweet in tweets_text]
     return tweets_text
 
@@ -281,7 +226,6 @@ def find_winner(award, tweets):
                     else:
                         potential_winners[name] += 1    
         winners = top_n_keys(potential_winners,1)
-        #print(winners)
     elif 'director' in award:
         potential_winners = {}
         for tweet in tweets:
@@ -292,7 +236,6 @@ def find_winner(award, tweets):
                     else:
                         potential_winners[name] += 1    
         winners = top_n_keys(potential_winners,1)
-        #print(winners)
     else:
         potential_winners = {}
         for tweet in tweets:
@@ -303,7 +246,6 @@ def find_winner(award, tweets):
                     else:
                         potential_winners[movie] += 1    
         winners = top_n_keys(potential_winners,1)
-        #print(winners)
     return winners
 
 
@@ -396,7 +338,6 @@ def find_presenters(award, tweets):
         else:
             presenters.append(i)
         previous_count = temp
-    #print(presenters)
     return presenters
 
 
@@ -418,7 +359,6 @@ def get_hosts(year):
                     else:
                         name_counts[name] += 1
     possible_hosts = top_n_keys(name_counts,5)
-    #print(possible_hosts)
 
     #Now trying to determine how many hosts there actually were
     previous_count = 0
@@ -445,20 +385,11 @@ def get_awards(year):
     for i in data:
         award = find_award(i['text'])
         acceptable = award and len(award.split()) > 1 and ("Best" in award or "award" in award) 
+        dividers = [" for ", " but ", " goes to ", " is ", " at ", " and ", " to ", " should ", ":", ".", "|", "!", "...", "--"]
         if(acceptable):
             award = award.lower()
-            award = award.split(" for ")[0]  # remove anything after 'for' (full award names with 'for' rarely tweeted)
-            award = award.split(" goes to ")[0]  # remove anything after 'goes to'
-            award = award.split(" is ")[0]
-            award = award.split(" at ")[0]
-            award = award.split(" and ")[0]
-            award = award.split(" to ")[0]
-            award = award.split(":")[0]
-            award = award.split(".")[0]
-            award = award.split("|")[0]
-            award = award.split("!")[0]
-            award = award.split("...")[0]
-            award = award.split("--")[0]
+            for div in dividers:
+                award = award.split(div)[0]
             award_words = award.split(" ")
             for word in award_words:
                 if word in names:
@@ -470,13 +401,10 @@ def get_awards(year):
             award = award.strip()
             award = award.split("golden globe")[0]
             
-            
             if len(award.split()) > 1: awards.append(award)
 
-    #award_counts = aggregate_and_sort(awards) # listOfTuples: (award found, number of times it appeared in tweets)
     award_counts = award_aggregation(awards)
-    #final_awards = [entry[0] for entry in award_counts]
-    return award_counts #final_awards
+    return award_counts 
 
 
 
@@ -635,7 +563,7 @@ def most_controversial(year):
 def pre_ceremony():
     """
     #following creates the base for the 3 txt files from the credits csv file and tvshows csv file. 
-    #They were cleaned further for short entries and to ensure winners were present
+    #They were cleaned further for removal of short entries and to ensure winners were present within the lists. Some foreign films were not covered.
     tvFile = pandas.read_csv('imdb_tvshows.csv')
     csvFile = pandas.read_csv('tmdb_5000_credits.csv')
     movie_list = csvFile["title"].to_list() + tvFile["Title"].to_list()
@@ -701,60 +629,72 @@ def main():
     what it returns.'''
 
     onLoad()  # to clean tweets only once
+    
     awards = get_awards(2013)
-    for award in awards:
-        print(award)
-        print()
-    #awards2 = aggregate_strings(awards)
-    #for award in awards2: print(award)
-    # hosts = get_hosts(2013)
-    # presenters = get_presenters(2013)
-    # nominees = get_nominees(2013)
-    # winners = get_winner(2013)
+    print("awards extracted")
+    hosts = get_hosts(2013)
+    print("hosts extracted")
+    presenters = get_presenters(2013)
+    print("presenters extracted")
+    nominees = get_nominees(2013)
+    print('nominees extracted')
+    winners = get_winner(2013)
+    print('winners extracted')
     
-    # involved_people = {2013: set(), 2015: set()}
-    # for i in hosts:
-    #     involved_people[2013].add(i)
-    # for award in presenters.keys():
-    #     pr = presenters[award]
-    #     for i in pr:
-    #         involved_people[2013].add(i)
-    #     if 'actor' in award or 'actress' in award or 'cecil' in award or 'director' in award:
-    #         nom = nominees[award]
-    #         for i in nom:
-    #             involved_people[2013].add(i)
-    #         win = winners[award]
-    #         involved_people[2013].add(win[0])
-    # involved_people[2015] = involved_people[2013]
+    involved_people = {2013: set(), 2015: set()}
+    for i in hosts:
+        involved_people[2013].add(i)
+    for award in presenters.keys():
+        pr = presenters[award]
+        for i in pr:
+            involved_people[2013].add(i)
+        if 'actor' in award or 'actress' in award or 'cecil' in award or 'director' in award:
+            nom = nominees[award]
+            for i in nom:
+                involved_people[2013].add(i)
+            win = winners[award]
+            involved_people[2013].add(win[0])
+    involved_people[2015] = involved_people[2013]
     
-    # bDressed = best_dressed(2013)
-    # wDressed = worst_dressed(2013)
-    # talked = talked_about(2013)
-    # controversial = most_controversial(2013)
+    bDressed = best_dressed(2013)
+    wDressed = worst_dressed(2013)
+    print("found best and worst dressed")
+    talked = talked_about(2013)
+    controversial = most_controversial(2013)
+    print("found most talked about and controversial")
     
-    # def human_readable(year):
-    #     print("Host(s): {0}\n\n".format(hosts))
-    #     print("List of mined awards: {0}\n\n".format(awards))
-    #     for award in OFFICIAL_AWARDS_1315:
-    #         print("Award: {0}".format(award))
-    #         print("Presenters: {0}".format(presenters[award]))
-    #         print("Nominees: {0}".format(nominees[award]))
-    #         print("Winner: {0}\n\n".format(winners[award]))
+    def human_readable(year):
+        print("Host(s): {0}\n\n".format(hosts))
+        print("List of mined awards: {0}\n\n".format(awards))
+        for award in OFFICIAL_AWARDS_1315:
+            print("Award: {0}".format(award))
+            print("Presenters: {0}".format(presenters[award]))
+            print("Nominees: {0}".format(nominees[award]))
+            print("Winner: {0}\n\n".format(winners[award]))
         
-    #     print("Best Dressed: {0}\n".format(bDressed[0]))
-    #     print("Worst Dressed: {0}\n".format(wDressed[0]))
-    #     print("Most Talked About:\n")
-    #     for key, value in talked.items():
-    #         print("{0}, buzzwords: {1}\n".format(key, value))
-    #     print("Most Controversial: {0}".format(controversial[0]))
+        print("Best Dressed: {0}\n".format(bDressed[0]))
+        print("Worst Dressed: {0}\n".format(wDressed[0]))
+        print("Most Talked About:\n")
+        for key, value in talked.items():
+            print("{0}, buzzwords: {1}\n".format(key, value))
+        print("Most Controversial: {0}".format(controversial[0]))
 
 
-    # def final_output(year):
-    #     pass
+    def final_output(year):
+        json_output = {}
+        for award in OFFICIAL_AWARDS_1315:
+            json_output[award] = {"Presenters": presenters[award], 
+                                  "Nominees": nominees[award],
+                                  "Winner":  winners[award]}
+        json_output["Hosts"] = hosts
+        return json.dumps(json_output)
 
-
-    # human_readable(2013)
-
+    #final_output(year) returns a json object of the results
+    print()
+    print("json output:")
+    print(final_output(2013))
+    #human_readable prints the results 
+    human_readable(2013)
 
 
 if __name__ == '__main__':
